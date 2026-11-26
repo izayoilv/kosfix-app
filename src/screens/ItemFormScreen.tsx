@@ -72,6 +72,12 @@ function reminderAtTime(dateKey: string, hours: number, minutes: number): string
   return new Date(`${dateKey}T${hh}:${mm}:00+07:00`).toISOString();
 }
 
+function wibTime(date: Date): { hours: number; minutes: number } {
+  const wib = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+
+  return { hours: wib.getUTCHours(), minutes: wib.getUTCMinutes() };
+}
+
 function nextFutureReminder(now: Date, targetDate: string | null): string {
   const todayKey = localDateKey(now);
   const preferredDate =
@@ -561,9 +567,10 @@ export function ItemFormScreen() {
                 setReminderDatePickerVisible(false);
                 if (event.type === 'set' && date !== undefined) {
                   const current = new Date(values.reminderAt ?? Date.now());
+                  const time = wibTime(current);
                   update(
                     'reminderAt',
-                    reminderAtTime(localDateKey(date), current.getHours(), current.getMinutes()),
+                    reminderAtTime(localDateKey(date), time.hours, time.minutes),
                   );
                 }
               }}
@@ -579,7 +586,8 @@ export function ItemFormScreen() {
                 setReminderTimePickerVisible(false);
                 if (event.type === 'set' && date !== undefined) {
                   const dateKey = localDateKey(new Date(values.reminderAt ?? Date.now()));
-                  update('reminderAt', reminderAtTime(dateKey, date.getHours(), date.getMinutes()));
+                  const time = wibTime(date);
+                  update('reminderAt', reminderAtTime(dateKey, time.hours, time.minutes));
                 }
               }}
             />
