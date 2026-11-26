@@ -4,11 +4,11 @@ import { NavigationContainer, useNavigationContainerRef } from '@react-navigatio
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, Button, PaperProvider, Text } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { createAppServices } from './src/app/bootstrap';
-import { NotificationObserver } from './src/app/notificationObserver';
-import { RootNavigator } from './src/app/RootNavigator';
-import { ServicesProvider } from './src/app/ServicesProvider';
-import type { RootStackParamList } from './src/app/RootNavigator';
+import { createAppServices } from './src/shell/bootstrap';
+import { NotificationObserver } from './src/shell/notificationObserver';
+import { RootNavigator } from './src/shell/RootNavigator';
+import { ServicesProvider } from './src/shell/ServicesProvider';
+import type { RootStackParamList } from './src/shell/RootNavigator';
 import type { Services } from './src/services/types';
 import { darkTheme } from './src/theme/darkTheme';
 import { lightTheme } from './src/theme/lightTheme';

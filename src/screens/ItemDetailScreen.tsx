@@ -13,8 +13,8 @@ import {
   TextInput,
   useTheme,
 } from 'react-native-paper';
-import { useServices } from '../app/ServicesProvider';
-import type { RootStackParamList } from '../app/RootNavigator';
+import { useServices } from '../shell/ServicesProvider';
+import type { RootStackParamList } from '../shell/RootNavigator';
 import { EmptyState } from '../components/EmptyState';
 import { MoneyText } from '../components/MoneyText';
 import { OverdueLabel } from '../components/OverdueLabel';

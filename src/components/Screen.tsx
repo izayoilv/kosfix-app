@@ -8,7 +8,7 @@ export function Screen({ children }: { children: ReactNode }) {
 
   return (
     <SafeAreaView
-      edges={['top']}
+      edges={['top', 'bottom']}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       {children}

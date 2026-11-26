@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { useServices } from '../app/ServicesProvider';
+import { useServices } from '../shell/ServicesProvider';
 import type { Item, RecentEvent, RepairEvent } from '../domain/types';
 
 export type AsyncData<T> = {

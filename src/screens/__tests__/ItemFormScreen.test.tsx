@@ -56,7 +56,7 @@ describe('ItemFormScreen', () => {
     expect(createSpy).not.toHaveBeenCalled();
   });
 
-  it('creates an item and navigates to detail', async () => {
+  it('creates an item and replaces the form with its detail screen', async () => {
     const { repository } = await renderForm();
 
     await fireEvent.changeText(screen.getByLabelText('Nama barang'), 'Lampu baru');

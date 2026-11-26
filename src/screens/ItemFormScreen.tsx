@@ -14,8 +14,8 @@ import {
   TextInput,
   useTheme,
 } from 'react-native-paper';
-import { useServices } from '../app/ServicesProvider';
-import type { RootStackParamList } from '../app/RootNavigator';
+import { useServices } from '../shell/ServicesProvider';
+import type { RootStackParamList } from '../shell/RootNavigator';
 import { EmptyState } from '../components/EmptyState';
 import { PhotoField } from '../components/PhotoField';
 import { Screen } from '../components/Screen';
@@ -257,7 +257,9 @@ export function ItemFormScreen() {
         await services.repository.setReminder(saved.id, null, null);
       }
 
-      if (existing !== null && navigationMessage === undefined && navigation.canGoBack()) {
+      if (existing === null) {
+        navigation.replace('ItemDetail', { itemId: saved.id, message: navigationMessage });
+      } else if (navigationMessage === undefined && navigation.canGoBack()) {
         navigation.goBack();
       } else {
         navigation.navigate('ItemDetail', { itemId: saved.id, message: navigationMessage });

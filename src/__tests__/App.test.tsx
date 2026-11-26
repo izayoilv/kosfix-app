@@ -1,4 +1,4 @@
-jest.mock('../app/bootstrap', () => ({
+jest.mock('../shell/bootstrap', () => ({
   createAppServices: jest.fn(),
 }));
 

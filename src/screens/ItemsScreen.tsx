@@ -13,8 +13,8 @@ import {
   Text,
   useTheme,
 } from 'react-native-paper';
-import { useServices } from '../app/ServicesProvider';
-import type { RootStackParamList, TabParamList } from '../app/RootNavigator';
+import { useServices } from '../shell/ServicesProvider';
+import type { RootStackParamList, TabParamList } from '../shell/RootNavigator';
 import { EmptyState } from '../components/EmptyState';
 import { ItemCard } from '../components/ItemCard';
 import { Screen } from '../components/Screen';
