@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "KosFix",
+    "slug": "kosfix-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "kosfix",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.izayoilv.kosfix",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.izayoilv.kosfix",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-dev-client",
+      "expo-sqlite",
+      "@react-native-community/datetimepicker",
+      "./plugins/withAndroidBuildConfig"
+    ]
+  }
+}
