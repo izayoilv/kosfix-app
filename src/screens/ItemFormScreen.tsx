@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
@@ -8,12 +8,12 @@ import {
   ActivityIndicator,
   Button,
   Chip,
-  Snackbar,
   Switch,
   Text,
   TextInput,
   useTheme,
 } from 'react-native-paper';
+import { useFeedback } from '../shell/FeedbackProvider';
 import { useServices } from '../shell/ServicesProvider';
 import type { RootStackParamList } from '../shell/RootNavigator';
 import { EmptyState } from '../components/EmptyState';
@@ -66,8 +66,21 @@ function nextDateKey(now: Date): string {
   return localDateKey(date);
 }
 
-function reminderAtNine(dateKey: string): string {
-  return new Date(`${dateKey}T09:00:00+07:00`).toISOString();
+function reminderAtTime(dateKey: string, hours: number, minutes: number): string {
+  const hh = String(hours).padStart(2, '0');
+  const mm = String(minutes).padStart(2, '0');
+  return new Date(`${dateKey}T${hh}:${mm}:00+07:00`).toISOString();
+}
+
+function nextFutureReminder(now: Date, targetDate: string | null): string {
+  const todayKey = localDateKey(now);
+  const preferredDate =
+    targetDate !== null && targetDate >= todayKey ? targetDate : nextDateKey(now);
+  const preferred = reminderAtTime(preferredDate, 9, 0);
+
+  return new Date(preferred).getTime() > now.getTime()
+    ? preferred
+    : reminderAtTime(nextDateKey(now), 9, 0);
 }
 
 function costValue(input: string): number | null {
@@ -91,7 +104,7 @@ export function ItemFormScreen() {
   const theme = useTheme();
   const services = useServices();
   const editingId = route.params?.itemId;
-  const { data: existing, loading } = useItem(editingId ?? '__new__');
+  const { data: existing, loading, error, reload } = useItem(editingId ?? '__new__');
   const now = services.now();
   const [values, setValues] = useState<ItemFormValues>(DEFAULT_VALUES);
   const [initialized, setInitialized] = useState(editingId === undefined);
@@ -99,63 +112,110 @@ export function ItemFormScreen() {
   const [pendingPhotoUri, setPendingPhotoUri] = useState<string | null>(null);
   const [photoRemoved, setPhotoRemoved] = useState(false);
   const [targetPickerVisible, setTargetPickerVisible] = useState(false);
-  const [reminderPickerVisible, setReminderPickerVisible] = useState(false);
+  const [reminderDatePickerVisible, setReminderDatePickerVisible] = useState(false);
+  const [reminderTimePickerVisible, setReminderTimePickerVisible] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [snackbar, setSnackbar] = useState('');
+  const { showMessage } = useFeedback();
 
   useEffect(() => {
     if (existing === null || initialized) {
       return;
     }
 
-    const expired =
-      existing.reminderAt !== null && new Date(existing.reminderAt).getTime() <= now.getTime();
-
-    // Editing seeds a local draft exactly once, when the repository row arrives.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setValues({
-      name: existing.name,
-      category: existing.category,
-      location: existing.location,
-      priority: existing.priority,
-      notes: existing.notes,
-      estimatedCost: existing.estimatedCost === null ? '' : String(existing.estimatedCost),
-      actualCost: existing.actualCost === null ? '' : String(existing.actualCost),
-      targetDate: existing.targetDate,
-      reminderEnabled: existing.reminderAt !== null && !expired,
-      reminderAt: existing.reminderAt,
-      photoPath: existing.photoPath,
-    });
-    setInitialized(true);
-  }, [existing, initialized, now]);
-
-  useEffect(() => {
     let active = true;
 
-    void services.photos.restorePendingPickerResult().then((uri) => {
-      if (active && uri !== null) {
-        setPendingPhotoUri(uri);
+    void (async () => {
+      const expired =
+        existing.reminderAt !== null && new Date(existing.reminderAt).getTime() <= now.getTime();
+      let reminderEnabled = existing.reminderAt !== null && !expired;
+
+      if (reminderEnabled) {
+        try {
+          const permission = await services.notifications.getPermission();
+
+          if (!permission.granted) {
+            reminderEnabled = false;
+
+            if (active) {
+              setErrors((current) => ({
+                ...current,
+                reminderAt: 'Izin pengingat tidak aktif',
+              }));
+            }
+          }
+        } catch {
+          // Keep the existing reminder visible if the permission state cannot be read.
+        }
       }
-    });
+
+      if (!active) {
+        return;
+      }
+
+      // Editing seeds a local draft exactly once, when the repository row arrives.
+      setValues({
+        name: existing.name,
+        category: existing.category,
+        location: existing.location,
+        priority: existing.priority,
+        notes: existing.notes,
+        estimatedCost: existing.estimatedCost === null ? '' : String(existing.estimatedCost),
+        actualCost: existing.actualCost === null ? '' : String(existing.actualCost),
+        targetDate: existing.targetDate,
+        reminderEnabled,
+        reminderAt: reminderEnabled ? existing.reminderAt : null,
+        photoPath: existing.photoPath,
+      });
+      setInitialized(true);
+    })();
 
     return () => {
       active = false;
     };
-  }, [services.photos]);
+  }, [existing, initialized, now, services.notifications]);
+
+  useEffect(() => {
+    let active = true;
+
+    void services.photos
+      .restorePendingPickerResult()
+      .then((uri) => {
+        if (active && uri !== null) {
+          setPendingPhotoUri(uri);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          showMessage('Foto gagal dipulihkan');
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [services.photos, showMessage]);
 
   const update = <K extends keyof ItemFormValues>(key: K, value: ItemFormValues[K]) => {
     setValues((current) => ({ ...current, [key]: value }));
   };
 
   const pickPhoto = async (source: 'camera' | 'library') => {
-    const uri =
-      source === 'camera'
-        ? await services.photos.pickFromCamera()
-        : await services.photos.pickFromLibrary();
+    try {
+      const uri =
+        source === 'camera'
+          ? await services.photos.pickFromCamera()
+          : await services.photos.pickFromLibrary();
 
-    if (uri !== null) {
-      setPendingPhotoUri(uri);
-      setPhotoRemoved(false);
+      if (uri !== null) {
+        setPendingPhotoUri(uri);
+        setPhotoRemoved(false);
+      }
+    } catch (error) {
+      showMessage(
+        error instanceof Error && error.message === 'photo-permission'
+          ? 'Izin kamera tidak aktif'
+          : 'Foto gagal diambil',
+      );
     }
   };
 
@@ -171,7 +231,13 @@ export function ItemFormScreen() {
       return;
     }
 
-    const permission = await services.notifications.requestPermission();
+    let permission: Awaited<ReturnType<typeof services.notifications.requestPermission>>;
+
+    try {
+      permission = await services.notifications.requestPermission();
+    } catch {
+      permission = { granted: false, canAskAgain: false };
+    }
 
     if (!permission.granted) {
       setValues((current) => ({ ...current, reminderEnabled: false, reminderAt: null }));
@@ -183,11 +249,7 @@ export function ItemFormScreen() {
     setValues((current) => ({
       ...current,
       reminderEnabled: true,
-      reminderAt: reminderAtNine(
-        current.targetDate !== null && current.targetDate >= localDateKey(now)
-          ? current.targetDate
-          : nextDateKey(now),
-      ),
+      reminderAt: nextFutureReminder(now, current.targetDate),
     }));
   };
 
@@ -200,7 +262,7 @@ export function ItemFormScreen() {
     }
 
     setSaving(true);
-    let navigationMessage: string | undefined;
+    let failure: string | undefined;
 
     const input: NewItem = {
       name: values.name.trim(),
@@ -226,11 +288,15 @@ export function ItemFormScreen() {
           const path = await services.photos.save(pendingPhotoUri, saved.id);
           saved = await services.repository.update(saved.id, { ...input, photoPath: path });
 
-          if (existing?.photoPath !== null && existing?.photoPath !== undefined) {
+          if (
+            existing?.photoPath !== null &&
+            existing?.photoPath !== undefined &&
+            existing.photoPath !== path
+          ) {
             await services.photos.remove(existing.photoPath);
           }
         } catch {
-          navigationMessage = 'Foto gagal disimpan';
+          failure = 'Foto gagal disimpan';
         }
       } else if (
         photoRemoved &&
@@ -251,21 +317,29 @@ export function ItemFormScreen() {
           await services.repository.setReminder(saved.id, values.reminderAt, result.id);
         } else {
           await services.repository.setReminder(saved.id, null, null);
-          navigationMessage = 'Pengingat gagal dijadwalkan';
+          failure = 'Pengingat gagal dijadwalkan';
         }
       } else {
         await services.repository.setReminder(saved.id, null, null);
       }
 
+      if (failure !== undefined) {
+        showMessage(failure);
+      } else if (existing === null) {
+        showMessage('Barang ditambahkan.');
+      } else {
+        showMessage('Perubahan disimpan.');
+      }
+
       if (existing === null) {
-        navigation.replace('ItemDetail', { itemId: saved.id, message: navigationMessage });
-      } else if (navigationMessage === undefined && navigation.canGoBack()) {
+        navigation.replace('ItemDetail', { itemId: saved.id });
+      } else if (navigation.canGoBack()) {
         navigation.goBack();
       } else {
-        navigation.navigate('ItemDetail', { itemId: saved.id, message: navigationMessage });
+        navigation.navigate('ItemDetail', { itemId: saved.id });
       }
     } catch {
-      setSnackbar('Gagal menyimpan. Coba lagi.');
+      showMessage('Gagal menyimpan. Coba lagi.');
     } finally {
       setSaving(false);
     }
@@ -278,6 +352,20 @@ export function ItemFormScreen() {
           <ActivityIndicator />
           <Text style={{ color: theme.colors.onSurfaceVariant }}>Memuat data...</Text>
         </View>
+      </Screen>
+    );
+  }
+
+  if (error !== null) {
+    return (
+      <Screen>
+        <EmptyState
+          icon="alert-circle-outline"
+          title="Data gagal dimuat"
+          body="Coba muat ulang halaman ini."
+          actionLabel="Coba lagi"
+          onAction={reload}
+        />
       </Screen>
     );
   }
@@ -442,6 +530,11 @@ export function ItemFormScreen() {
                 </Text>
               ) : null}
               <FieldError message={errors.reminderAt} />
+              {errors.reminderAt === 'Izin pengingat tidak aktif' ? (
+                <Button compact onPress={() => void Linking.openSettings()}>
+                  Buka pengaturan
+                </Button>
+              ) : null}
             </View>
             <Switch
               accessibilityLabel="Aktifkan pengingat"
@@ -450,19 +543,43 @@ export function ItemFormScreen() {
             />
           </View>
           {values.reminderEnabled ? (
-            <Button compact onPress={() => setReminderPickerVisible(true)}>
-              Pilih waktu
-            </Button>
+            <View style={styles.inlineRow}>
+              <Button compact onPress={() => setReminderDatePickerVisible(true)}>
+                Tanggal pengingat
+              </Button>
+              <Button compact onPress={() => setReminderTimePickerVisible(true)}>
+                Waktu pengingat
+              </Button>
+            </View>
           ) : null}
-          {reminderPickerVisible && values.reminderAt !== null ? (
+          {reminderDatePickerVisible && values.reminderAt !== null ? (
             <DateTimePicker
-              testID="reminder-picker"
+              testID="reminder-date-picker"
               value={new Date(values.reminderAt)}
               mode="date"
               onChange={(event, date) => {
-                setReminderPickerVisible(false);
+                setReminderDatePickerVisible(false);
                 if (event.type === 'set' && date !== undefined) {
-                  update('reminderAt', reminderAtNine(localDateKey(date)));
+                  const current = new Date(values.reminderAt ?? Date.now());
+                  update(
+                    'reminderAt',
+                    reminderAtTime(localDateKey(date), current.getHours(), current.getMinutes()),
+                  );
+                }
+              }}
+            />
+          ) : null}
+          {reminderTimePickerVisible && values.reminderAt !== null ? (
+            <DateTimePicker
+              testID="reminder-time-picker"
+              value={new Date(values.reminderAt)}
+              mode="time"
+              is24Hour
+              onChange={(event, date) => {
+                setReminderTimePickerVisible(false);
+                if (event.type === 'set' && date !== undefined) {
+                  const dateKey = localDateKey(new Date(values.reminderAt ?? Date.now()));
+                  update('reminderAt', reminderAtTime(dateKey, date.getHours(), date.getMinutes()));
                 }
               }}
             />
@@ -478,10 +595,6 @@ export function ItemFormScreen() {
           Simpan
         </Button>
       </ScrollView>
-
-      <Snackbar visible={snackbar.length > 0} onDismiss={() => setSnackbar('')} duration={4000}>
-        {snackbar}
-      </Snackbar>
     </Screen>
   );
 }

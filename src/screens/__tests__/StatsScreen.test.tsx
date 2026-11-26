@@ -39,6 +39,20 @@ describe('StatsScreen', () => {
     expect(await screen.findByText('Belum ada data untuk dihitung')).toBeOnTheScreen();
   });
 
+  it('shows a load error and retries', async () => {
+    const repository = createFakeItemRepository([makeItem({ id: '1' })]);
+    await renderApp({ repository, now: NOW });
+    await screen.findByText('Lampu kamar mati');
+
+    jest.spyOn(repository, 'list').mockRejectedValueOnce(new Error('db'));
+    await fireEvent.press(screen.getByRole('button', { name: /Statistik, tab/ }));
+
+    expect(await screen.findByText('Data gagal dimuat')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByText('Coba lagi'));
+
+    expect(await screen.findByText('Total 1 barang')).toBeOnTheScreen();
+  });
+
   it('shows totals, status counts, and costs', async () => {
     await renderStats();
 

@@ -10,7 +10,7 @@ import { computeStats } from '../domain/stats';
 
 export function StatsScreen() {
   const theme = useTheme();
-  const { data: items, loading } = useItems();
+  const { data: items, loading, error, reload } = useItems();
   const stats = computeStats(items);
   const maxCategoryCount = Math.max(1, ...stats.categories.map((entry) => entry.count));
 
@@ -21,6 +21,20 @@ export function StatsScreen() {
           <ActivityIndicator />
           <Text style={{ color: theme.colors.onSurfaceVariant }}>Memuat data...</Text>
         </View>
+      </Screen>
+    );
+  }
+
+  if (error !== null && items.length === 0) {
+    return (
+      <Screen>
+        <EmptyState
+          icon="alert-circle-outline"
+          title="Data gagal dimuat"
+          body="Coba muat ulang statistik."
+          actionLabel="Coba lagi"
+          onAction={reload}
+        />
       </Screen>
     );
   }

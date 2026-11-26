@@ -62,7 +62,7 @@ export function ItemsScreen() {
   const navigation = useNavigation<ItemsNavigation>();
   const theme = useTheme();
   const services = useServices();
-  const { data: items, loading } = useItems();
+  const { data: items, loading, error, reload } = useItems();
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<ItemStatus | 'semua'>('semua');
   const [category, setCategory] = useState<Category | 'semua'>('semua');
@@ -98,6 +98,20 @@ export function ItemsScreen() {
           <ActivityIndicator />
           <Text style={{ color: theme.colors.onSurfaceVariant }}>Memuat data...</Text>
         </View>
+      </Screen>
+    );
+  }
+
+  if (error !== null && items.length === 0) {
+    return (
+      <Screen>
+        <EmptyState
+          icon="alert-circle-outline"
+          title="Data gagal dimuat"
+          body="Coba muat ulang daftar barang."
+          actionLabel="Coba lagi"
+          onAction={reload}
+        />
       </Screen>
     );
   }

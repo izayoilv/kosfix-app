@@ -1,6 +1,7 @@
 import { createNavigationContainerRef, NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { PaperProvider } from 'react-native-paper';
+import { FeedbackProvider } from '../../shell/FeedbackProvider';
 import { RootNavigator } from '../../shell/RootNavigator';
 import type { RootStackParamList } from '../../shell/RootNavigator';
 import { ServicesProvider } from '../../shell/ServicesProvider';
@@ -29,9 +30,11 @@ describe('ItemFormScreen navigation', () => {
             now: () => NOW,
           }}
         >
-          <NavigationContainer ref={navigationRef} theme={navigationTheme.light}>
-            <RootNavigator initialRouteName="ItemForm" initialParams={{}} />
-          </NavigationContainer>
+          <FeedbackProvider>
+            <NavigationContainer ref={navigationRef} theme={navigationTheme.light}>
+              <RootNavigator initialRouteName="ItemForm" initialParams={{}} />
+            </NavigationContainer>
+          </FeedbackProvider>
         </ServicesProvider>
       </PaperProvider>,
     );

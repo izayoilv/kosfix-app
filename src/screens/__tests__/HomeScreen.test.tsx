@@ -46,8 +46,19 @@ describe('HomeScreen', () => {
     expect(screen.getByLabelText('Rusak, 1 barang')).toBeOnTheScreen();
     expect(screen.getByLabelText('Dikerjakan, 1 barang')).toBeOnTheScreen();
     expect(screen.getByLabelText('Selesai, 1 barang')).toBeOnTheScreen();
-    expect(screen.getByText('Keran dapur')).toBeOnTheScreen();
+    expect(screen.getAllByText('Keran dapur')).toHaveLength(1);
     expect(screen.queryByText('Terlambat')).not.toBeOnTheScreen();
+  });
+
+  it('shows a load error and retries', async () => {
+    const repository = createFakeItemRepository([makeItem({ id: '1' })]);
+    jest.spyOn(repository, 'list').mockRejectedValueOnce(new Error('db'));
+    await renderApp({ repository, now: NOW });
+
+    expect(await screen.findByText('Data gagal dimuat')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByText('Coba lagi'));
+
+    expect(await screen.findByText('Lampu kamar mati')).toBeOnTheScreen();
   });
 
   it('shows the empty state and navigates to the form', async () => {

@@ -85,7 +85,7 @@ describe('photo service', () => {
     await expect(service.pickFromCamera()).resolves.toBeNull();
   });
 
-  it('picks from the library', async () => {
+  it('picks from the library without an explicit media permission request', async () => {
     launchLibraryMock.mockResolvedValue({
       canceled: false,
       assets: [{ uri: 'file:///cache/library.jpg' }],
@@ -93,7 +93,15 @@ describe('photo service', () => {
     const service = createExpoPhotoService();
 
     await expect(service.pickFromLibrary()).resolves.toBe('file:///cache/library.jpg');
-    expect(libraryPermissionMock).toHaveBeenCalled();
+    expect(libraryPermissionMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects when camera permission is denied', async () => {
+    cameraPermissionMock.mockResolvedValue({ granted: false });
+    const service = createExpoPhotoService();
+
+    await expect(service.pickFromCamera()).rejects.toThrow('photo-permission');
+    expect(launchCameraMock).not.toHaveBeenCalled();
   });
 
   it('restores a pending picker result', async () => {
@@ -113,14 +121,14 @@ describe('photo service', () => {
     await expect(service.restorePendingPickerResult()).resolves.toBeNull();
   });
 
-  it('copies a photo into the document directory', async () => {
+  it('copies a photo into the document directory and overwrites an existing one', async () => {
     const service = createExpoPhotoService();
 
     await expect(service.save('file:///cache/pick.jpg', 'item-1')).resolves.toBe(
       'photos/item-1.jpg',
     );
     expect(createDirectoryMock).toHaveBeenCalled();
-    expect(copyMock).toHaveBeenCalled();
+    expect(copyMock).toHaveBeenCalledWith(expect.anything(), { overwrite: true });
   });
 
   it('resolves a relative path to a document uri', () => {

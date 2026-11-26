@@ -1,9 +1,9 @@
 import { parseRupiahInput } from './formatting';
 import type { ItemFormValues, ValidationErrors } from './types';
 
-const MAX_COST = 999_999_999;
+export const MAX_COST = 999_999_999;
 
-function costError(label: string, value: string): string | undefined {
+export function costInputError(label: string, value: string): string | undefined {
   if (value.trim().length === 0) {
     return undefined;
   }
@@ -43,12 +43,12 @@ export function validateItemForm(values: ItemFormValues, now: Date): ValidationE
     errors.notes = 'Catatan maksimal 500 karakter.';
   }
 
-  const estimatedError = costError('Biaya estimasi', values.estimatedCost);
+  const estimatedError = costInputError('Biaya estimasi', values.estimatedCost);
   if (estimatedError !== undefined) {
     errors.estimatedCost = estimatedError;
   }
 
-  const actualError = costError('Biaya aktual', values.actualCost);
+  const actualError = costInputError('Biaya aktual', values.actualCost);
   if (actualError !== undefined) {
     errors.actualCost = actualError;
   }

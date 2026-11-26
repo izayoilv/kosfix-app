@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, Button, PaperProvider, Text } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { createAppServices } from './src/shell/bootstrap';
+import { FeedbackProvider } from './src/shell/FeedbackProvider';
 import { NotificationObserver } from './src/shell/notificationObserver';
 import { RootNavigator } from './src/shell/RootNavigator';
 import { ServicesProvider } from './src/shell/ServicesProvider';
@@ -87,13 +88,15 @@ export default function App({ createServices = createAppServices }: AppProps) {
       <PaperProvider theme={theme}>
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <ServicesProvider services={services}>
-          <NavigationContainer
-            ref={navigationRef}
-            theme={isDark ? navigationTheme.dark : navigationTheme.light}
-          >
-            <RootNavigator />
-            <NotificationObserver navigationRef={navigationRef} />
-          </NavigationContainer>
+          <FeedbackProvider>
+            <NavigationContainer
+              ref={navigationRef}
+              theme={isDark ? navigationTheme.dark : navigationTheme.light}
+            >
+              <RootNavigator />
+              <NotificationObserver navigationRef={navigationRef} />
+            </NavigationContainer>
+          </FeedbackProvider>
         </ServicesProvider>
       </PaperProvider>
     </SafeAreaProvider>

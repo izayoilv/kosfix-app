@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { PaperProvider } from 'react-native-paper';
 import { render } from '@testing-library/react-native';
+import { FeedbackProvider } from '../shell/FeedbackProvider';
 import { RootNavigator } from '../shell/RootNavigator';
 import { ServicesProvider } from '../shell/ServicesProvider';
 import type { ItemRepository } from '../domain/repository';
@@ -34,12 +35,14 @@ export function renderApp(options: RenderAppOptions) {
   return render(
     <PaperProvider theme={lightTheme}>
       <ServicesProvider services={services}>
-        <NavigationContainer theme={navigationTheme.light}>
-          <RootNavigator
-            initialRouteName={options.initialRouteName}
-            initialParams={options.initialParams}
-          />
-        </NavigationContainer>
+        <FeedbackProvider>
+          <NavigationContainer theme={navigationTheme.light}>
+            <RootNavigator
+              initialRouteName={options.initialRouteName}
+              initialParams={options.initialParams}
+            />
+          </NavigationContainer>
+        </FeedbackProvider>
       </ServicesProvider>
     </PaperProvider>,
   );

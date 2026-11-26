@@ -1,6 +1,11 @@
-import { fireEvent, screen } from '@testing-library/react-native';
-import { createFakeItemRepository, createFakeNotifications } from '../../test/fakes';
-import type { FakeNotifications } from '../../test/fakes';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { Linking } from 'react-native';
+import {
+  createFakeItemRepository,
+  createFakeNotifications,
+  createFakePhotos,
+} from '../../test/fakes';
+import type { FakeNotifications, FakePhotos } from '../../test/fakes';
 import { makeItem, makeRecentEvent } from '../../test/factories';
 import { renderApp } from '../../test/renderWithProviders';
 import type { Item } from '../../domain/types';
@@ -9,11 +14,12 @@ const NOW = new Date('2026-11-25T10:00:00+07:00');
 
 async function renderDetail(
   item: Item | null,
-  options: { notifications?: FakeNotifications; itemId?: string } = {},
+  options: { notifications?: FakeNotifications; photos?: FakePhotos; itemId?: string } = {},
 ) {
   const itemId = options.itemId ?? item?.id ?? 'item-1';
   const repository = createFakeItemRepository(item === null ? [] : [item]);
   const notifications = options.notifications ?? createFakeNotifications();
+  const photos = options.photos ?? createFakePhotos();
 
   if (item !== null) {
     repository.seedEvents([
@@ -32,11 +38,12 @@ async function renderDetail(
     repository,
     now: NOW,
     notifications,
+    photos,
     initialRouteName: 'ItemDetail',
     initialParams: { itemId },
   });
 
-  return { repository, notifications };
+  return { repository, notifications, photos };
 }
 
 describe('ItemDetailScreen', () => {
@@ -60,6 +67,7 @@ describe('ItemDetailScreen', () => {
 
     expect((await repository.get('item-1'))?.status).toBe('dikerjakan');
     expect(await screen.findByText('Tandai selesai')).toBeOnTheScreen();
+    expect(await screen.findByText('Status diperbarui.')).toBeOnTheScreen();
   });
 
   it('completes a repair with an actual cost', async () => {
@@ -75,6 +83,50 @@ describe('ItemDetailScreen', () => {
     expect(await screen.findByText('Buka kembali')).toBeOnTheScreen();
   });
 
+  it('blocks completion with an invalid actual cost', async () => {
+    const { repository } = await renderDetail(makeItem({ status: 'dikerjakan' }));
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Tandai selesai' }));
+    await fireEvent.changeText(screen.getByLabelText('Biaya aktual'), 'abc');
+    await fireEvent.press(screen.getByTestId('confirm-complete'));
+
+    expect(await screen.findByText('Biaya aktual harus berupa angka.')).toBeOnTheScreen();
+    expect((await repository.get('item-1'))?.status).toBe('dikerjakan');
+  });
+
+  it('rejects an actual cost above the rupiah limit', async () => {
+    const { repository } = await renderDetail(makeItem({ status: 'dikerjakan' }));
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Tandai selesai' }));
+    await fireEvent.changeText(screen.getByLabelText('Biaya aktual'), '1.000.000.000');
+    await fireEvent.press(screen.getByTestId('confirm-complete'));
+
+    expect(await screen.findByText('Biaya aktual harus berupa angka.')).toBeOnTheScreen();
+    expect((await repository.get('item-1'))?.status).toBe('dikerjakan');
+  });
+
+  it('cancels and clears the reminder on completion', async () => {
+    const notifications = createFakeNotifications();
+    const { repository } = await renderDetail(
+      makeItem({
+        status: 'dikerjakan',
+        reminderAt: '2026-11-26T09:00:00+07:00',
+        reminderNotificationId: 'notif-1',
+      }),
+      { notifications },
+    );
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Tandai selesai' }));
+    await fireEvent.press(screen.getByTestId('confirm-complete'));
+
+    await waitFor(async () => {
+      expect((await repository.get('item-1'))?.status).toBe('selesai');
+    });
+    expect(notifications.cancelled).toContain('notif-1');
+    expect((await repository.get('item-1'))?.reminderAt).toBeNull();
+    expect((await repository.get('item-1'))?.reminderNotificationId).toBeNull();
+  });
+
   it('reopens a completed repair', async () => {
     const { repository } = await renderDetail(makeItem({ status: 'selesai' }));
 
@@ -82,6 +134,7 @@ describe('ItemDetailScreen', () => {
 
     expect((await repository.get('item-1'))?.status).toBe('dikerjakan');
     expect(await screen.findByText('Tandai selesai')).toBeOnTheScreen();
+    expect(await screen.findByText('Status diperbarui.')).toBeOnTheScreen();
   });
 
   it('opens the edit form', async () => {
@@ -99,6 +152,50 @@ describe('ItemDetailScreen', () => {
     await fireEvent.press(screen.getByTestId('confirm-delete'));
 
     expect(await repository.get('item-1')).toBeNull();
+    expect(await screen.findByText('Barang dihapus.')).toBeOnTheScreen();
+  });
+
+  it('deletes the row even when photo cleanup fails', async () => {
+    const photos = createFakePhotos();
+    jest.spyOn(photos, 'remove').mockRejectedValue(new Error('file'));
+    const { repository } = await renderDetail(makeItem({ photoPath: 'photos/item-1.jpg' }), {
+      photos,
+    });
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Hapus' }));
+    await fireEvent.press(screen.getByTestId('confirm-delete'));
+
+    await waitFor(async () => {
+      expect(await repository.get('item-1')).toBeNull();
+    });
+  });
+
+  it('shows a load error and retries', async () => {
+    const repository = createFakeItemRepository([makeItem()]);
+    jest.spyOn(repository, 'get').mockRejectedValueOnce(new Error('db'));
+    await renderApp({
+      repository,
+      now: NOW,
+      initialRouteName: 'ItemDetail',
+      initialParams: { itemId: 'item-1' },
+    });
+
+    expect(await screen.findByText('Data gagal dimuat')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByText('Coba lagi'));
+
+    expect(await screen.findByText('Lampu kamar mati')).toBeOnTheScreen();
+  });
+
+  it('cancels the reminder on delete', async () => {
+    const notifications = createFakeNotifications();
+    await renderDetail(makeItem({ reminderNotificationId: 'notif-1' }), { notifications });
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Hapus' }));
+    await fireEvent.press(screen.getByTestId('confirm-delete'));
+
+    await waitFor(() => {
+      expect(notifications.cancelled).toContain('notif-1');
+    });
   });
 
   it('shows a not-found state for a missing item', async () => {
@@ -122,6 +219,21 @@ describe('ItemDetailScreen', () => {
     });
 
     expect(await screen.findByText('Izin pengingat tidak aktif')).toBeOnTheScreen();
+  });
+
+  it('offers a settings action when notification permission is inactive', async () => {
+    const openSettings = jest.spyOn(Linking, 'openSettings').mockResolvedValue(undefined);
+    const notifications = createFakeNotifications();
+    notifications.setPermission({ granted: false, canAskAgain: true });
+
+    await renderDetail(makeItem({ reminderAt: '2026-11-26T09:00:00+07:00' }), {
+      notifications,
+    });
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Buka pengaturan' }));
+
+    expect(openSettings).toHaveBeenCalled();
+    openSettings.mockRestore();
   });
 
   it('does not show overdue for a completed item', async () => {

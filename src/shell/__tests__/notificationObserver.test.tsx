@@ -72,6 +72,24 @@ describe('useNotificationObserver', () => {
     });
   });
 
+  it('stays put when the item lookup fails', async () => {
+    const services = servicesFor();
+    jest.spyOn(services.repository, 'get').mockRejectedValueOnce(new Error('db'));
+    const navigationRef = makeRef();
+
+    await render(
+      <ServicesProvider services={services}>
+        <ObserverHost navigationRef={navigationRef} />
+      </ServicesProvider>,
+    );
+
+    services.notifications.open('item-1');
+
+    await waitFor(() => {
+      expect(navigationRef.navigate).not.toHaveBeenCalled();
+    });
+  });
+
   it('unsubscribes on unmount', async () => {
     const services = servicesFor();
     const navigationRef = makeRef();

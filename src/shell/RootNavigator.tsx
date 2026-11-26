@@ -10,7 +10,7 @@ import { StatsScreen } from '../screens/StatsScreen';
 
 export type RootStackParamList = {
   Tabs: undefined;
-  ItemDetail: { itemId: string; message?: string };
+  ItemDetail: { itemId: string };
   ItemForm: { itemId?: string };
 };
 

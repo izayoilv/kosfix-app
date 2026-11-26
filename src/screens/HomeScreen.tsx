@@ -26,7 +26,7 @@ export function HomeScreen() {
   const navigation = useNavigation<HomeNavigation>();
   const theme = useTheme();
   const services = useServices();
-  const { data: items, loading, error } = useItems();
+  const { data: items, loading, error, reload } = useItems();
   const { data: recentEvents } = useRecentEvents(3);
   const now = services.now();
   const today = localDateKey(now);
@@ -55,6 +55,8 @@ export function HomeScreen() {
           icon="alert-circle-outline"
           title="Data gagal dimuat"
           body="Coba muat ulang halaman ini."
+          actionLabel="Coba lagi"
+          onAction={reload}
         />
       </Screen>
     );

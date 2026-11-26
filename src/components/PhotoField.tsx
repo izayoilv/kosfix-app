@@ -61,6 +61,9 @@ export function PhotoField({
               <Button compact onPress={onPickCamera}>
                 Ganti foto
               </Button>
+              <Button compact onPress={onPickLibrary}>
+                Galeri
+              </Button>
               <Button compact onPress={onRemove} textColor={theme.colors.error}>
                 Hapus foto
               </Button>

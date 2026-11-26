@@ -45,6 +45,18 @@ describe('validateItemForm', () => {
     ).toBeUndefined();
   });
 
+  it('enforces the rupiah upper bound and accepts zero', () => {
+    expect(
+      validateItemForm({ ...validValues, estimatedCost: '0' }, NOW).estimatedCost,
+    ).toBeUndefined();
+    expect(
+      validateItemForm({ ...validValues, estimatedCost: '999.999.999' }, NOW).estimatedCost,
+    ).toBeUndefined();
+    expect(
+      validateItemForm({ ...validValues, estimatedCost: '1.000.000.000' }, NOW).estimatedCost,
+    ).toContain('angka');
+  });
+
   it('requires a future reminder when the switch is on', () => {
     expect(
       validateItemForm(

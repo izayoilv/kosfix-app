@@ -100,8 +100,9 @@ not use this APK for a store release; a store build needs a private signing key.
 2. **apk** — the same install and gates on Ubuntu with Temurin 17, Android SDK
    37, Gradle caching, then `pnpm build:apk`.
 
-The APK job uploads the `kosfix-apk` artifact with 30-day retention. Download it
-from the workflow run and install with `adb install kosfix.apk`.
+The APK job uploads the `kosfix-apk` artifact with 30-day retention. Download
+it from the workflow run, extract `kosfix.apk`, and install it with
+`adb install kosfix.apk`.
 
 ## Data and privacy
 

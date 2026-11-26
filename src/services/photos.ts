@@ -5,13 +5,12 @@ import type { PhotoStore } from './types';
 const PHOTO_DIRECTORY = 'photos';
 
 async function launchPicker(source: 'camera' | 'library'): Promise<string | null> {
-  const permission =
-    source === 'camera'
-      ? await ImagePicker.requestCameraPermissionsAsync()
-      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (source === 'camera') {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
 
-  if (!permission.granted) {
-    return null;
+    if (!permission.granted) {
+      throw new Error('photo-permission');
+    }
   }
 
   const options: ImagePicker.ImagePickerOptions = {
@@ -60,7 +59,7 @@ export function createExpoPhotoService(): PhotoStore {
     }
 
     const destination = new File(directory, `${itemId}.jpg`);
-    await new File(tempUri).copy(destination);
+    await new File(tempUri).copy(destination, { overwrite: true });
 
     return `${PHOTO_DIRECTORY}/${itemId}.jpg`;
   }

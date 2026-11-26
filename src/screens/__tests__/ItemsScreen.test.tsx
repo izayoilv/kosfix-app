@@ -47,6 +47,20 @@ describe('ItemsScreen', () => {
     expect(screen.getByText('Keran dapur')).toBeOnTheScreen();
   });
 
+  it('shows a load error and retries', async () => {
+    const repository = createFakeItemRepository([makeItem({ id: '1' })]);
+    await renderApp({ repository, now: NOW });
+    await screen.findByText('Lampu kamar mati');
+
+    jest.spyOn(repository, 'list').mockRejectedValueOnce(new Error('db'));
+    await fireEvent.press(screen.getByRole('button', { name: /Barang, tab/ }));
+
+    expect(await screen.findByText('Data gagal dimuat')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByText('Coba lagi'));
+
+    expect(await screen.findByText('Lampu kamar mati')).toBeOnTheScreen();
+  });
+
   it('filters by search query', async () => {
     await renderItems();
 

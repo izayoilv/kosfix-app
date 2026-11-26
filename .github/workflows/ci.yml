@@ -68,6 +68,5 @@ jobs:
         with:
           name: kosfix-apk
           path: dist/kosfix.apk
-          archive: false
           if-no-files-found: error
           retention-days: 30

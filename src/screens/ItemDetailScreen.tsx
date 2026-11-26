@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useCallback, useState } from 'react';
+import { Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
@@ -8,11 +8,11 @@ import {
   Button,
   Dialog,
   Portal,
-  Snackbar,
   Text,
   TextInput,
   useTheme,
 } from 'react-native-paper';
+import { useFeedback } from '../shell/FeedbackProvider';
 import { useServices } from '../shell/ServicesProvider';
 import type { RootStackParamList } from '../shell/RootNavigator';
 import { EmptyState } from '../components/EmptyState';
@@ -26,6 +26,7 @@ import { SectionHeader } from '../components/SectionHeader';
 import { StatusBadge } from '../components/StatusBadge';
 import { useItem, useItemEvents } from '../data/hooks';
 import { formatDate, formatDateTime, localDateKey, parseRupiahInput } from '../domain/formatting';
+import { costInputError } from '../domain/validation';
 import { CATEGORY_LABELS, LOCATION_LABELS } from '../domain/labels';
 import { isOverdue } from '../domain/overdue';
 import { isReminderExpired } from '../domain/reminder';
@@ -52,32 +53,43 @@ export function ItemDetailScreen() {
   const [completeVisible, setCompleteVisible] = useState(false);
   const [deleteVisible, setDeleteVisible] = useState(false);
   const [actualCostInput, setActualCostInput] = useState('');
+  const [completeError, setCompleteError] = useState<string | undefined>(undefined);
   const [permissionGranted, setPermissionGranted] = useState(true);
-  const [snackbar, setSnackbar] = useState(route.params.message ?? '');
+  const { showMessage } = useFeedback();
 
   const reminderExpired = item !== null && isReminderExpired(item, now);
   const hasFutureReminder =
     item?.reminderAt !== null && item?.reminderAt !== undefined && !reminderExpired;
 
-  useEffect(() => {
-    let active = true;
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
 
-    if (!hasFutureReminder) {
+      if (!hasFutureReminder) {
+        setPermissionGranted(true);
+        return () => {
+          active = false;
+        };
+      }
+
+      void services.notifications
+        .getPermission()
+        .then((result) => {
+          if (active) {
+            setPermissionGranted(result.granted);
+          }
+        })
+        .catch(() => {
+          if (active) {
+            setPermissionGranted(false);
+          }
+        });
+
       return () => {
         active = false;
       };
-    }
-
-    void services.notifications.getPermission().then((result) => {
-      if (active) {
-        setPermissionGranted(result.granted);
-      }
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [hasFutureReminder, services.notifications]);
+    }, [hasFutureReminder, services.notifications]),
+  );
 
   const reloadAll = () => {
     reload();
@@ -87,12 +99,17 @@ export function ItemDetailScreen() {
   const applyStatus = async (next: 'dikerjakan' | 'selesai', actualCost?: number | null) => {
     if (item === null) return;
 
-    if (next === 'selesai' && item.reminderNotificationId !== null) {
-      await services.notifications.cancel(item.reminderNotificationId);
-    }
+    try {
+      if (next === 'selesai' && item.reminderNotificationId !== null) {
+        await services.notifications.cancel(item.reminderNotificationId);
+      }
 
-    await services.repository.changeStatus(item.id, next, { actualCost });
-    reloadAll();
+      await services.repository.changeStatus(item.id, next, { actualCost });
+      reloadAll();
+      showMessage('Status diperbarui.');
+    } catch {
+      showMessage('Gagal memperbarui status. Coba lagi.');
+    }
   };
 
   const handlePrimaryAction = () => {
@@ -105,6 +122,7 @@ export function ItemDetailScreen() {
 
     if (item.status === 'dikerjakan') {
       setActualCostInput(item.actualCost === null ? '' : String(item.actualCost));
+      setCompleteError(undefined);
       setCompleteVisible(true);
       return;
     }
@@ -113,8 +131,17 @@ export function ItemDetailScreen() {
   };
 
   const handleComplete = () => {
-    const parsed = parseRupiahInput(actualCostInput);
-    const actualCost = parsed === null || Number.isNaN(parsed) ? undefined : parsed;
+    const trimmed = actualCostInput.trim();
+    const error = trimmed.length === 0 ? undefined : costInputError('Biaya aktual', trimmed);
+
+    if (error !== undefined) {
+      setCompleteError(error);
+      return;
+    }
+
+    const parsed = trimmed.length === 0 ? null : parseRupiahInput(trimmed);
+    const actualCost = parsed === null ? undefined : parsed;
+    setCompleteError(undefined);
     setCompleteVisible(false);
     void applyStatus('selesai', actualCost);
   };
@@ -124,11 +151,22 @@ export function ItemDetailScreen() {
     setDeleteVisible(false);
 
     void (async () => {
-      await services.notifications.cancel(item.reminderNotificationId);
-      await services.photos.remove(item.photoPath);
-      await services.repository.remove(item.id);
-      if (navigation.canGoBack()) {
-        navigation.goBack();
+      try {
+        await services.notifications.cancel(item.reminderNotificationId);
+        await services.repository.remove(item.id);
+
+        try {
+          await services.photos.remove(item.photoPath);
+        } catch {
+          // The row is already gone; an orphaned photo is acceptable for v1.
+        }
+
+        showMessage('Barang dihapus.');
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
+      } catch {
+        showMessage('Gagal menghapus. Coba lagi.');
       }
     })();
   };
@@ -150,7 +188,9 @@ export function ItemDetailScreen() {
         <EmptyState
           icon="alert-circle-outline"
           title="Data gagal dimuat"
-          body="Coba buka kembali halaman ini."
+          body="Coba muat ulang halaman ini."
+          actionLabel="Coba lagi"
+          onAction={reloadAll}
         />
       </Screen>
     );
@@ -222,7 +262,12 @@ export function ItemDetailScreen() {
             </Text>
           )}
           {hasFutureReminder && !permissionGranted ? (
-            <Text style={{ color: theme.colors.error }}>Izin pengingat tidak aktif</Text>
+            <View style={styles.permissionRow}>
+              <Text style={{ color: theme.colors.error }}>Izin pengingat tidak aktif</Text>
+              <Button compact onPress={() => void Linking.openSettings()}>
+                Buka pengaturan
+              </Button>
+            </View>
           ) : null}
         </View>
 
@@ -262,9 +307,16 @@ export function ItemDetailScreen() {
               label="Biaya aktual"
               accessibilityLabel="Biaya aktual"
               value={actualCostInput}
-              onChangeText={setActualCostInput}
+              onChangeText={(text) => {
+                setActualCostInput(text);
+                setCompleteError(undefined);
+              }}
               keyboardType="numeric"
+              error={completeError !== undefined}
             />
+            {completeError === undefined ? null : (
+              <Text style={{ color: theme.colors.error, fontSize: 12 }}>{completeError}</Text>
+            )}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setCompleteVisible(false)}>Batal</Button>
@@ -287,10 +339,6 @@ export function ItemDetailScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
-
-      <Snackbar visible={snackbar.length > 0} onDismiss={() => setSnackbar('')} duration={4000}>
-        {snackbar}
-      </Snackbar>
     </Screen>
   );
 }
@@ -314,6 +362,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
+  },
+  permissionRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
   },
   meta: {
     gap: 4,

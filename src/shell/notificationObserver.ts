@@ -14,11 +14,14 @@ export function useNotificationObserver(
         return;
       }
 
-      void repository.get(itemId).then((item) => {
-        if (item !== null && navigationRef.isReady()) {
-          navigationRef.navigate('ItemDetail', { itemId: item.id });
-        }
-      });
+      void repository
+        .get(itemId)
+        .then((item) => {
+          if (item !== null && navigationRef.isReady()) {
+            navigationRef.navigate('ItemDetail', { itemId: item.id });
+          }
+        })
+        .catch(() => undefined);
     });
 
     return unsubscribe;
