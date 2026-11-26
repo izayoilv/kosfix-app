@@ -1,8 +1,46 @@
 import type { ReactElement } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
 import { PaperProvider } from 'react-native-paper';
 import { render } from '@testing-library/react-native';
+import { RootNavigator } from '../app/RootNavigator';
+import { ServicesProvider } from '../app/ServicesProvider';
+import type { ItemRepository } from '../domain/repository';
+import type { NotificationService, PhotoStore } from '../services/types';
+import { navigationTheme } from '../theme/navigationTheme';
 import { lightTheme } from '../theme/lightTheme';
+import { createFakeNotifications, createFakePhotos } from './fakes';
 
 export function renderWithProviders(ui: ReactElement) {
   return render(<PaperProvider theme={lightTheme}>{ui}</PaperProvider>);
+}
+
+export type RenderAppOptions = {
+  repository: ItemRepository;
+  now: Date;
+  notifications?: NotificationService;
+  photos?: PhotoStore;
+  initialRouteName?: 'Tabs' | 'ItemDetail' | 'ItemForm';
+  initialParams?: { itemId?: string };
+};
+
+export function renderApp(options: RenderAppOptions) {
+  const services = {
+    repository: options.repository,
+    notifications: options.notifications ?? createFakeNotifications(),
+    photos: options.photos ?? createFakePhotos(),
+    now: () => options.now,
+  };
+
+  return render(
+    <PaperProvider theme={lightTheme}>
+      <ServicesProvider services={services}>
+        <NavigationContainer theme={navigationTheme.light}>
+          <RootNavigator
+            initialRouteName={options.initialRouteName}
+            initialParams={options.initialParams}
+          />
+        </NavigationContainer>
+      </ServicesProvider>
+    </PaperProvider>,
+  );
 }

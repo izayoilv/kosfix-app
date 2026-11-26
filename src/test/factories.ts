@@ -1,4 +1,4 @@
-import type { Item, RepairEvent } from '../domain/types';
+import type { Item, RecentEvent, RepairEvent } from '../domain/types';
 
 const BASE_TIME = '2026-11-20T03:00:00.000Z';
 
@@ -33,6 +33,14 @@ export function makeEvent(overrides: Partial<RepairEvent> = {}): RepairEvent {
     toStatus: 'rusak',
     note: null,
     createdAt: BASE_TIME,
+    ...overrides,
+  };
+}
+
+export function makeRecentEvent(overrides: Partial<RecentEvent> = {}): RecentEvent {
+  return {
+    ...makeEvent(overrides),
+    itemName: 'Lampu kamar mati',
     ...overrides,
   };
 }
