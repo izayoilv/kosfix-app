@@ -14,7 +14,7 @@
     "android": {
       "package": "com.izayoilv.kosfix",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0F766E",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -25,6 +25,22 @@
       "expo-dev-client",
       "expo-sqlite",
       "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "KosFix membutuhkan akses galeri untuk melampirkan foto barang.",
+          "cameraPermission": "KosFix membutuhkan akses kamera untuk memotret barang.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#0F766E",
+          "enableRemoteNotifications": false
+        }
+      ],
       "./plugins/withAndroidBuildConfig"
     ]
   }
