@@ -123,6 +123,7 @@ export function createFakeItemRepository(initialItems: Item[] = []): FakeItemRep
 export type FakeNotifications = NotificationService & {
   scheduled: string[];
   cancelled: string[];
+  unsubscribeCount: number;
   setPermission: (permission: PermissionResult) => void;
   setScheduleFailure: (failure: string | null) => void;
   open: (itemId: string) => void;
@@ -133,6 +134,7 @@ export function createFakeNotifications(): FakeNotifications {
   let scheduleFailure: string | null = null;
   let scheduled: string[] = [];
   let cancelled: string[] = [];
+  let unsubscribeCount = 0;
   let observer: ((itemId: string) => void) | null = null;
 
   const service: FakeNotifications = {
@@ -141,6 +143,9 @@ export function createFakeNotifications(): FakeNotifications {
     },
     get cancelled() {
       return cancelled;
+    },
+    get unsubscribeCount() {
+      return unsubscribeCount;
     },
     ensureChannel: async () => undefined,
     getPermission: async () => permission,
@@ -167,6 +172,7 @@ export function createFakeNotifications(): FakeNotifications {
       observer = onOpen;
       return () => {
         observer = null;
+        unsubscribeCount += 1;
       };
     },
     setPermission: (next) => {
