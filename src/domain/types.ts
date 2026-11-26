@@ -44,7 +44,7 @@ export interface NewItem {
   reminderAt: string | null;
 }
 
-export interface ItemUpdate extends NewItem {}
+export type ItemUpdate = NewItem;
 
 export interface ItemFormValues {
   name: string;
