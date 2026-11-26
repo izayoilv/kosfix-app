@@ -8,6 +8,7 @@ import {
   Button,
   Dialog,
   Portal,
+  Snackbar,
   Text,
   TextInput,
   useTheme,
@@ -52,6 +53,7 @@ export function ItemDetailScreen() {
   const [deleteVisible, setDeleteVisible] = useState(false);
   const [actualCostInput, setActualCostInput] = useState('');
   const [permissionGranted, setPermissionGranted] = useState(true);
+  const [snackbar, setSnackbar] = useState(route.params.message ?? '');
 
   const reminderExpired = item !== null && isReminderExpired(item, now);
   const hasFutureReminder =
@@ -285,6 +287,10 @@ export function ItemDetailScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
+
+      <Snackbar visible={snackbar.length > 0} onDismiss={() => setSnackbar('')} duration={4000}>
+        {snackbar}
+      </Snackbar>
     </Screen>
   );
 }

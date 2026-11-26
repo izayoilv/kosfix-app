@@ -89,7 +89,7 @@ describe('ItemDetailScreen', () => {
 
     await fireEvent.press(screen.getByRole('button', { name: 'Ubah' }));
 
-    expect(await screen.findByText('Tambah Barang')).toBeOnTheScreen();
+    expect(await screen.findByText('Ubah Barang')).toBeOnTheScreen();
   });
 
   it('deletes the item after confirmation', async () => {
