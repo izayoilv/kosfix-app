@@ -12,5 +12,8 @@ module.exports = defineConfig([
     languageOptions: {
       globals: globals.jest,
     },
+    rules: {
+      'import/first': 'off',
+    },
   },
 ]);
