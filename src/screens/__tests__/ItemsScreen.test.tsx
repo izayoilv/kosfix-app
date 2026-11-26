@@ -91,7 +91,7 @@ describe('ItemsScreen', () => {
 
     await fireEvent.press(screen.getByRole('button', { name: 'Lampu kamar mati' }));
 
-    expect(await screen.findByText('Detail')).toBeOnTheScreen();
+    expect(await screen.findByText('Mulai perbaikan')).toBeOnTheScreen();
   });
 
   it('does not show overdue for a completed item', async () => {
