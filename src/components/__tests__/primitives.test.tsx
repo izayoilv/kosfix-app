@@ -48,7 +48,7 @@ describe('shared primitives', () => {
         onAction={onAction}
       />,
     );
-    fireEvent.press(screen.getByText('Tambah barang'));
+    await fireEvent.press(screen.getByText('Tambah barang'));
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 });
