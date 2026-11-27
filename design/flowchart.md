@@ -49,5 +49,4 @@ stateDiagram-v2
   Rusak --> Dikerjakan: Mulai perbaikan
   Dikerjakan --> Selesai: Tandai selesai<br/>(optional actual cost)
   Selesai --> Dikerjakan: Buka kembali
-  Selesai --> [*]: Delete
 ```
