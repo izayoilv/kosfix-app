@@ -45,7 +45,6 @@ flowchart TD
 
 ```mermaid
 stateDiagram-v2
-  direction LR
   [*] --> Rusak: Create item
   Rusak --> Dikerjakan: Mulai perbaikan
   Dikerjakan --> Selesai: Tandai selesai<br/>(optional actual cost)
