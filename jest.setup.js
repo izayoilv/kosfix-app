@@ -21,3 +21,8 @@ jest.mock('@react-native-community/datetimepicker', () => {
     default: (props) => React.createElement(View, props),
   };
 });
+
+jest.mock('expo-splash-screen', () => ({
+  preventAutoHideAsync: jest.fn().mockResolvedValue(undefined),
+  hideAsync: jest.fn().mockResolvedValue(undefined),
+}));

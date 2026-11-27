@@ -2,7 +2,7 @@
   "expo": {
     "name": "KosFix",
     "slug": "kosfix-app",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "kosfix",
@@ -19,7 +19,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "versionCode": 2
     },
     "plugins": [
       "expo-dev-client",
@@ -39,6 +40,19 @@
           "icon": "./assets/notification-icon.png",
           "color": "#0F766E",
           "enableRemoteNotifications": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#0F766E",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#0F172A"
+          }
         }
       ],
       "./plugins/withAndroidBuildConfig"

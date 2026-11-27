@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Text, useTheme } from 'react-native-paper';
+import { Text, useTheme } from 'react-native-paper';
 import { EmptyState } from '../components/EmptyState';
+import { LoadingScreen } from '../components/LoadingScreen';
 import { Screen } from '../components/Screen';
 import { SectionHeader } from '../components/SectionHeader';
 import { useItems } from '../data/hooks';
@@ -15,14 +16,7 @@ export function StatsScreen() {
   const maxCategoryCount = Math.max(1, ...stats.categories.map((entry) => entry.count));
 
   if (loading && items.length === 0) {
-    return (
-      <Screen>
-        <View style={styles.center}>
-          <ActivityIndicator />
-          <Text style={{ color: theme.colors.onSurfaceVariant }}>Memuat data...</Text>
-        </View>
-      </Screen>
-    );
+    return <LoadingScreen />;
   }
 
   if (error !== null && items.length === 0) {

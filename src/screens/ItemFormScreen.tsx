@@ -4,19 +4,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import {
-  ActivityIndicator,
-  Button,
-  Chip,
-  Switch,
-  Text,
-  TextInput,
-  useTheme,
-} from 'react-native-paper';
+import { Button, Chip, Switch, Text, TextInput, useTheme } from 'react-native-paper';
 import { useFeedback } from '../shell/FeedbackProvider';
 import { useServices } from '../shell/ServicesProvider';
 import type { RootStackParamList } from '../shell/RootNavigator';
 import { EmptyState } from '../components/EmptyState';
+import { LoadingScreen } from '../components/LoadingScreen';
 import { PhotoField } from '../components/PhotoField';
 import { Screen } from '../components/Screen';
 import { SectionHeader } from '../components/SectionHeader';
@@ -352,14 +345,7 @@ export function ItemFormScreen() {
   };
 
   if (loading && !initialized) {
-    return (
-      <Screen>
-        <View style={styles.center}>
-          <ActivityIndicator />
-          <Text style={{ color: theme.colors.onSurfaceVariant }}>Memuat data...</Text>
-        </View>
-      </Screen>
-    );
+    return <LoadingScreen />;
   }
 
   if (error !== null) {

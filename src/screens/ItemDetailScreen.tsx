@@ -3,19 +3,12 @@ import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import {
-  ActivityIndicator,
-  Button,
-  Dialog,
-  Portal,
-  Text,
-  TextInput,
-  useTheme,
-} from 'react-native-paper';
+import { Button, Dialog, Portal, Text, TextInput, useTheme } from 'react-native-paper';
 import { useFeedback } from '../shell/FeedbackProvider';
 import { useServices } from '../shell/ServicesProvider';
 import type { RootStackParamList } from '../shell/RootNavigator';
 import { EmptyState } from '../components/EmptyState';
+import { LoadingScreen } from '../components/LoadingScreen';
 import { MoneyText } from '../components/MoneyText';
 import { OverdueLabel } from '../components/OverdueLabel';
 import { PhotoField } from '../components/PhotoField';
@@ -172,14 +165,7 @@ export function ItemDetailScreen() {
   };
 
   if (loading && item === null) {
-    return (
-      <Screen>
-        <View style={styles.center}>
-          <ActivityIndicator />
-          <Text style={{ color: theme.colors.onSurfaceVariant }}>Memuat data...</Text>
-        </View>
-      </Screen>
-    );
+    return <LoadingScreen />;
   }
 
   if (error !== null) {

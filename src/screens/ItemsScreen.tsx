@@ -4,18 +4,11 @@ import { useNavigation } from '@react-navigation/native';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import {
-  ActivityIndicator,
-  Button,
-  Chip,
-  FAB,
-  Searchbar,
-  Text,
-  useTheme,
-} from 'react-native-paper';
+import { Button, Chip, FAB, Searchbar, Text, useTheme } from 'react-native-paper';
 import { useServices } from '../shell/ServicesProvider';
 import type { RootStackParamList, TabParamList } from '../shell/RootNavigator';
 import { EmptyState } from '../components/EmptyState';
+import { LoadingScreen } from '../components/LoadingScreen';
 import { ItemCard } from '../components/ItemCard';
 import { Screen } from '../components/Screen';
 import { CATEGORY_LABELS } from '../domain/labels';
@@ -92,14 +85,7 @@ export function ItemsScreen() {
   };
 
   if (loading && items.length === 0) {
-    return (
-      <Screen>
-        <View style={styles.center}>
-          <ActivityIndicator />
-          <Text style={{ color: theme.colors.onSurfaceVariant }}>Memuat data...</Text>
-        </View>
-      </Screen>
-    );
+    return <LoadingScreen />;
   }
 
   if (error !== null && items.length === 0) {
